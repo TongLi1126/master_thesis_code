@@ -52,7 +52,13 @@ for m = 1:M
         x_window = w.*x(left:right,m); % apply window
         x_fft = fft(x_window);
 %        periodogram(x_window,rectwin(length(x_fft)),length(x_fft),fs)
-
+%         s_multi = pmtm(x(left:right,m),3,nfft,fs);
+%         figure
+%         subplot(2,1,1) 
+%         pmtm(x(left:right,m),3,nfft,fs)
+%         plot(f,mag2db(s_multi)+90)
+%          subplot(2,1,2) 
+%          plot(f,mag2db(2*abs(x_fft(1:257)).^2))
         X(:,index+1,m) = x_fft(1:N_half).*H_half;
     end
 end
