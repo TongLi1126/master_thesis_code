@@ -53,8 +53,8 @@ for m = 1:M
         x_fft = fft(x_window);
 %        periodogram(x_window,rectwin(length(x_fft)),length(x_fft),fs)
 %         s_multi = pmtm(x(left:right,m),3,nfft,fs);
-        [pss,s_multi] = pmtm_custom(x(left:right,m),3,nfft,fs);
-         pss2 = pmtm(x(left:right,m),3,nfft,fs);
+%          [pss,s_multi] = pmtm(x(left:right,m),3,nfft,fs);
+%          pss2 = pmtm(x(left:right,m),3,nfft,fs);
 %         figure
 %         subplot(2,1,1) 
 % %         pmtm(x(left:right,m),3,nfft,fs)
@@ -62,8 +62,8 @@ for m = 1:M
 %          subplot(2,1,2) 
 %          plot(f,10*log10(2*(abs(x_fft(1:257))/nfft).^2))
         X(:,index+1,m) = x_fft(1:N_half).*H_half;
-        X_multi(:,index+1,m) = 10*s_multi(1:N_half);
-        P_multi(:,index+1,m) = 10000000*pss; 
+        X_multi(:,index+1,m) = 10*ones(N_half,1);
+        P_multi(:,index+1,m) = 10*ones(N_half,1);
         
     end
 end

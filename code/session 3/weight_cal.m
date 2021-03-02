@@ -1,12 +1,12 @@
 function [W_update,W_compare] = weight_cal(Ryy_pre, Rnn_pre,func_r,func_model,mu)
     I = eye(2); 
-    alpha = 0; m = 0.9;
+    
     switch func_r
         case 1
             Ryy = Ryy_pre;
             Rnn = Rnn_pre;
         case 2
-            
+            alpha = 0.1; m = 0.9;
             Ryy = (1-alpha)*Ryy_pre + alpha*I;
             Rnn = (1-alpha)*Rnn_pre + alpha*(1-m)*I;
     end
@@ -34,6 +34,7 @@ function [W_update,W_compare] = weight_cal(Ryy_pre, Rnn_pre,func_r,func_model,mu
             W_compare = W_update;
       
        case 2   % basic MWF in direct way
+            alpha = 0.1; m = 1;
             denominator = ((1-alpha)*(Q*(sig_yy+(mu-1)*sig_nn)*Qh) + alpha * I);
             nominator = (1-alpha) * sig_ss + alpha * m * I;
             W_update = pinv(denominator)* nominator *[1;0];
@@ -43,7 +44,7 @@ function [W_update,W_compare] = weight_cal(Ryy_pre, Rnn_pre,func_r,func_model,mu
               
               W_update = diag(pinv(diag(diag(Ryy + (mu-1)*Rnn),0))*diag(diag(Ryy-Rnn),0));
               W_compare =  W_update;
-       case 5
+       case 4
            
            
    end

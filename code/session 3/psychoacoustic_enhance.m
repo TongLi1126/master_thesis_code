@@ -14,14 +14,17 @@ end
 % Generate speech signal
 % Load ATFs
 load Computed_RIRs
+load HRTF
 % load speech_both 
 source_filename{1} = 'speech1.wav';
-siglength = 4;
+siglength = 15; 
 [source_signals_raw{1}, source_signals_raw{2}] = audioread(source_filename{1});
 signal  = resample(source_signals_raw{1},fs_RIR,source_signals_raw{2});
 signal = 10*signal(1:siglength*fs_RIR);
-speech = fftfilt(RIR_sources,signal,siglength*fs_RIR);
-
+% speech = fftfilt(RIR_sources,signal,siglength*fs_RIR);
+% speech = fftfilt(HRTF,signal,siglength*fs_RIR);
+load binaural_sig
+ speech = binaural_sig(1:fs_RIR*siglength,:);
 
 % Generate noise at microphone
 SNR_bubble = 5; SNR_white = 30;
@@ -73,11 +76,11 @@ time = 0:1/fs:((size(speech,1)-1)/fs);
 
 
 % Observe the STFT
-clow = -60; chigh = 10; % lower and upper limits for signal power in spectrogram (can change for different resolutions)
+clow = -100; chigh = 10; % lower and upper limits for signal power in spectrogram (can change for different resolutions)
 [N_freqs, N_frames] = size(y_STFT(:,:,1));
 
 figure;
-imagesc(time, f/1000, mag2db(abs(x_STFT(:,:,1))), [clow, chigh]); colorbar;
+imagesc(time, f/1000, mag2db(abs(x_STFT(:,:,1))),[clow, chigh]); colorbar;
 axis xy; set(gca,'fontsize', 14);
 set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (kHz)')
 % figure;
@@ -103,46 +106,40 @@ imagesc(1:N_frames, f,SPP); colorbar; axis xy; set(gcf,'color','w');
 set(gca,'Fontsize',14), xlabel('Time Frames'), ylabel('Frequency (Hz)'), title('Speech Presence Probability for ref mic');
 % %%
 % % 
-% % % 
+% %% observe Tx_mask, TY_mask, TN_mask
 TY_Mask = zeros(N_freqs,N_frames);
 TX_Mask = zeros(N_freqs,N_frames);
 TN_Mask = zeros(N_freqs,N_frames);
 noise_spl = zeros(N_freqs,N_frames);
 NMR = zeros(N_freqs,N_frames);
-num_mics = 2;
-%  tic
 
-  for t = 1:N_frames
-    %  use 1st mic speech signal as masker
-%        [TY_Mask(:,t),bark] = mask_cal(y_STFT(:,t,1),f,fs,nfft,t,1);
-       [TX_Mask(:,t),bark] = mask_cal(x_STFT(:,t,1),f,fs,nfft,t,10);
-       noise_spl(:,t) = psd2spl(n_STFT(:,t,1),nfft);
-       NMR(:,t) = noise_spl(:,t)-TX_Mask(:,t);
-%        figure(30);
-%        plot(f,NMR(:,t))
-%       [TN_Mask(:,t),bark] = mask_cal(n_STFT(:,t,1),f,fs,nfft,t);
-      
-  end
-%   toc
-% Observe the TM
-figure; subplot(2,1,1);
-imagesc(1:N_frames, f,TX_Mask); colorbar; axis xy; set(gcf,'color','w');
-set(gca,'Fontsize',14), xlabel('Time Frames'), ylabel('Frequency (Hz)'), title('Masking threshold for ref mic');
-subplot(2,1,2);
-imagesc(1:N_frames, f, mag2db(abs(x_STFT(:,:,1))), [clow, chigh]); colorbar;
-axis xy; set(gca,'fontsize', 14);
-set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (Hz)'),title('power spectra of ref mic');
+% %  tic
+%   for t = 1:N_frames
+%     %  use 1st mic speech signal as masker
+% %      [TY_Mask(:,t),bark] = mask_cal(y_STFT(:,t,1),f,fs,nfft,t,1);
+%        [TX_Mask(:,t),bark] = mask_cal(x_STFT(:,t,1),f,fs,nfft,t,10);
+%        noise_spl(:,t) = psd2spl(n_STFT(:,t,1),nfft);
+%        NMR(:,t) = noise_spl(:,t)-TX_Mask(:,t);       
+%       
+%   end
+% %   toc
+% % Observe the TM
+% figure; subplot(2,1,1);
+% imagesc(1:N_frames, f,TX_Mask); colorbar; axis xy; set(gcf,'color','w');
+% set(gca,'Fontsize',14), xlabel('Time Frames'), ylabel('Frequency (Hz)'), title('Masking threshold for ref mic');
+% subplot(2,1,2);
+% imagesc(1:N_frames, f, mag2db(abs(x_STFT(:,:,1))), [clow, chigh]); colorbar;
+% axis xy; set(gca,'fontsize', 14);
+% set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (Hz)'),title('power spectra of ref mic');
 % figure;
 % imagesc(1:N_frames, f,NMR); colorbar; axis xy; set(gcf,'color','w');
 % set(gca,'Fontsize',14), xlabel('Time Frames'), ylabel('Frequency (Hz)'), title('Masking threshold for ref mic');
 
-
-
 %%  Exercise 3.2: ## Implementation of the MWF
 num_mics = 2;
 
-Rnn = cell(N_freqs,1);  Rnn(:) = {1e-9*randn(num_mics,num_mics)};      % Noise Only (NO) corr. matrix. Initialize to small random values
-Ryy = cell(N_freqs,1);  Ryy(:) = {1e-9*randn(num_mics,num_mics)};      % Speech + Noise (SPN) corr. matrix. Initialize to small random values
+Rnn = cell(N_freqs,1);  Rnn(:) = {1e-6*ones(num_mics,num_mics)};      % Noise Only (NO) corr. matrix. Initialize to small random values
+Ryy = cell(N_freqs,1);  Ryy(:) = {1e-6*ones(num_mics,num_mics)};      % Speech + Noise (SPN) corr. matrix. Initialize to small random values
 model.lambda = 0.995;                                                       % Forgetting factors for correlation matrices - can change
 model.SPP_thr = 0.95;                                                       % Threshold for SPP - can change
 
@@ -160,8 +157,7 @@ weight = (1/num_mics)*ones(num_mics,N_freqs,N_frames);
 for l=1:N_frames % Time index
     
     for k = 1:N_freqs % Freq index
-        
-        
+                
         % Create a vector of mic. signals
         Y_kl = squeeze(y_STFT(k,l,1:num_mics));  % M x 1 noisy mic sigs for this freq and time frame
         X_kl = squeeze(x_STFT(k,l,1:num_mics));
@@ -186,21 +182,21 @@ for l=1:N_frames % Time index
              
        % calculate mu used in SDW MWF     
        % mu1: fix constant; mu2 spp model; mu3 psycho1;mu4 psycho2
-       model.mu = 3;
+       model.mu = 1;
        mu = mu_calc(SPP(k,l),TX_Mask(k,l),NMR(k,l),model.mu);
-       muxx(k,l) =  mu;          
+       muxx(k,l) =  mu;  
+       % calculate W_update in different model ,func =1:4
+       model.weight = 1; model.power = 1;
+       [W_update,W_compare] = weight_cal(Ryy{k}, Rnn{k},model.power,model.weight,mu);  
+       weight(:,k,l) =W_update;
+       weight_compare(:,k,l) =W_compare;
        % update w
-         for m = 1:num_mics
-             % calculate W_update in different model ,func =1:4
-             % After experiments, we found that Filter parameter is not likely
-             % larger than 2 if it converges.
-             model.weight = 2; model.power = 1;
-             [W_update,W_compare] = weight_cal(Ryy{k}, Rnn{k},model.power,model.weight,mu);  
-              weight(:,k,l) =W_update;
-              weight_compare(:,k,l) =W_compare;
+         for m = 1:num_mics    
+              % After experiments, we found that Filter parameter is not likely
+              % larger than 2 if it converges.
             if(max(abs(W_update)) < 2.2) % This will skip some initial frames  
                 W_mvdr_mwfL(:,k,m) =W_update;              
-             end
+            end
             % Filtering the noisy speech, the speech-only, and the noise-only.
             S_mvdr_mwfL_stft(k,l,m) = W_mvdr_mwfL(:,k,m)'* Y_kl(1:num_mics);
             X_mvdr_mwfL_stft(k,l,m) = W_mvdr_mwfL(:,k,m)'* X_kl(1:num_mics);
@@ -233,7 +229,7 @@ n_mwfL = WOLA_synthesis(N_mvdr_mwfL_stft,window,nfft,noverlap);% To complete (ti
 % PLOT SIGNALS
 figure;
 subplot(2,1,1);
-plot(noisy_sig); title('signal before enhancement');
+plot(speech); title('clean signal');
 subplot(2,1,2);
 plot(real(s_mwfL));title('signal after enhancement');
 %  soundsc(s_mwfL,fs);
@@ -244,24 +240,26 @@ plot(real(s_mwfL));title('signal after enhancement');
 
 % EVALUATION
 
-%  SNR_in_L =snr(speech_non_rev(:,1),noise(:,1)) % Compute input SNR
-% SNR_out_L =snr(s_mwfL(:,1),n_mwfL(:,1)) % Compute output SNR
-% delta_SNR_L = SNR_out_L-SNR_in_L
-%  SNR_in_R =snr(speech_non_rev(:,2),noise(:,2)) % Compute input SNR
-% SNR_out_R =snr(s_mwfL(:,2),n_mwfL(:,2))
-% delta_SNR_R = SNR_out_R-SNR_in_R
+% snr
 SNR_in_L =snr(speech(:,1),noise(:,1)); % Compute input SNR
 SNR_out_L =snr(s_mwfL(:,1),n_mwfL(:,1)) ;% Compute output SNR
 delta_SNR_L = SNR_out_L-SNR_in_L;
-% SNR_in_R =snr(speech_rev(:,2),noise_rev(:,2)) % Compute input SNR
-% SNR_out_R =snr(s_mwfL(:,2),n_mwfL(:,2))
-% delta_SNR_R = SNR_out_R-SNR_in_R
-% spectral distance
-power_L=abs(y_STFT(:,:,1))./abs(S_mvdr_mwfL_stft(:,:,1));
-power_L = power_L(:,3:N_frames);
-SD_L = sum(sqrt(sum((10*log10(power_L)).^2,1)/N_freqs),2)/N_frames;
+
+% spectral distance SD
+x_STFT_norm = x_STFT./(max(max(max(x_STFT))));
+S_mvdr_mwfL_stft_norm = S_mvdr_mwfL_stft./(max(max(max(S_mvdr_mwfL_stft))));
+power_L=abs(x_STFT_norm(:,:,1))./abs(S_mvdr_mwfL_stft_norm(:,:,1));
+power_L(find((power_L<=1e-6) |(power_L>=1e5))) = 1;
+SD_L = mean(sqrt(mean((10*log10(power_L)).^2)));
+
+% BSD and MBSD
+LN_clean = psd2spl(x_STFT_norm(:,:,1),nfft);
+LN_enhance = psd2spl(S_mvdr_mwfL_stft_norm(:,:,1) ,nfft);
+L_diff = abs(LN_clean-LN_enhance); L_diff(find(L_diff>100)) = 0;
+BSD = mean(sum((L_diff).^2))/mean(sum((LN_clean).^2));
+M = (L_diff-TX_Mask); M(find(M>150)) = 0;
+M(find(M>0)) = 1;M(find(M<=0)) = 0;
+MBSD = mean(sum(M.*L_diff));
 disp(['delta_SNR = ', num2str(delta_SNR_L),' ,SD_L is ', num2str(SD_L),' ,nfft is ', num2str(nfft),...
     ' ,weight model is ',num2str(model.weight) ,' ,mu model is ',num2str(model.mu)]);
-% power_R=abs(y_STFT_rev(:,:,1))./abs(S_mvdr_mwfL_stft(:,:,1));
-% power_R = power_R(:,2:N_frames);
-% SD_R = sum(sqrt(sum((10*log10(power_R)).^2,1)/N_freqs),2)/N_frames;
+
