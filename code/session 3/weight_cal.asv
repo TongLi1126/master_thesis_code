@@ -46,7 +46,7 @@ function [W_update,mvdr_n1,mvdr_n2] = weight_cal(Ryy_pre, Rnn_pre,Rxx,rho_rev,rh
 %            W_mvdr = Q(1,1)*(1/(h'*inv(Rnn+Rrr)*h))*inv(Rnn+Rrr)*h;
           % traditional d bad performance
            Rrr = rho_rev *gama;
-           W_single = rho_ss/(rho_ss + 1 /(h'*inv(Rrr + Rnn)*h));
+           W_single = rho_ss/(rho_ss + mu /(h'*inv(Rrr + Rnn)*h));
            W_mvdr = (1/(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
            W_update =  W_single * W_mvdr; 
            W_compare = (1-mu/(d(1)+mu-1))*Qh(1,1).*V(:,1);

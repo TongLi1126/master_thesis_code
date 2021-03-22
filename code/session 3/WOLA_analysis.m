@@ -7,7 +7,7 @@
 % complete
 
 
-function [X,X_multi,P_multi,f] = WOLA_analysis(x,fs,window,nfft,noverlap,varargin)
+function [X,f] = WOLA_analysis(x,fs,window,nfft,noverlap,varargin)
 %WOLA_analysis  short-time fourier transform
 % INPUT:
 %   x           : input time signal(s) (samples x channels)
@@ -61,7 +61,7 @@ for m = 1:M
 %         plot(f,10*log10(s_multi)+14)
 %          subplot(2,1,2) 
 %          plot(f,10*log10(2*(abs(x_fft(1:257))/nfft).^2))
-        X(:,index+1,m) = x_fft(1:N_half).*H_half;
+        X(:,index+1,m) = x_fft(1:N_half).*H_half(:);
         X_multi(:,index+1,m) = 10*ones(N_half,1);
         P_multi(:,index+1,m) = 10*ones(N_half,1);
         
