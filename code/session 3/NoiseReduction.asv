@@ -95,7 +95,7 @@ for l=1:N_frames % Time index
         %       sig_spectral = sqrt(prioiSNR(k,l)/(mu+prioiSNR(k,l)))*()    rho_rev_realx(k,l)
               Rx3(k,l) = sig_spectral*conj(sig_spectral);
              rho_rev =   rho_r(k,l) ;
-%                rho_rev =  0;
+               rho_rev =  0;
               rho_ss  =  abs(Rx3(k,l) ); h = h_steer(:,k);Rn =  Rnn_real{k};
 %        calculate mu used in SDW MWF     
 %        mu1: fix constant; mu2 spp model; mu3 psycho1;mu4 psycho2
@@ -108,8 +108,7 @@ for l=1:N_frames % Time index
            W_mvdr = (1/abs(h'*pinv(Rn+Rrr)*h))*pinv(Rn+Rrr)*h;
 %            W_update =  W_single * W_mvdr; 
 % [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask,gama,h,1,1);
- [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},...
-     h,model.weight,model.mu);
+ [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},h,4,1);
 
   
        weight(:,k,l) =W_update;  

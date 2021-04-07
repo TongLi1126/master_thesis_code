@@ -1,15 +1,7 @@
-function [W_update,mvdr_n1,mvdr_n2] = weight_cal(Ryy_pre, Rnn_pre,Rxx,rho_rev,rho_ss,TX_Mask,gama,h,func_r,func_model,mu)
+function [W_update] = weight_cal(Ryy, Rnn,Rxx,rho_rev,rho_ss,TX_Mask,gama,h,func_model,mu)
     I = eye(2); 
     
-    switch func_r
-        case 1
-            Ryy = Ryy_pre;
-            Rnn = Rnn_pre;
-        case 2
-            alpha = 0; m = 1;
-            Ryy = (1-alpha)*Ryy_pre + alpha*I;
-            Rnn = (1-alpha)*Rnn_pre + alpha*(1-m)*I;
-    end
+ 
 % signal general eigenvalue decomposition
     [sig_yy,sig_nn,sig_ss,d,Q,Qh,V] = GEVD(Rnn,Ryy);
     Rss = sig_ss(1,1)* Q(:,1)*Qh(1,:);
@@ -45,9 +37,10 @@ function [W_update,mvdr_n1,mvdr_n2] = weight_cal(Ryy_pre, Rnn_pre,Rxx,rho_rev,rh
 %            W_single = rho_ss/(rho_ss + mu /(h'*inv(Rrr + Rnn)*h));
 %            W_mvdr = Q(1,1)*(1/(h'*inv(Rnn+Rrr)*h))*inv(Rnn+Rrr)*h;
           % traditional d bad performance
-           Rrr = rho_rev *gama;
-           W_single = rho_ss/(rho_ss + 1 /(h'*inv(Rrr + Rnn)*h));
-           W_mvdr = (1/(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
+           Rrr = rho_rev *gama;           
+           W_single = rho_ss/(rho_ss + mu /(abs(h'*pinv(Rrr + Rnn)*h)));
+           W_single = max(0,W_single );
+           W_mvdr = (1/abs(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
            W_update =  W_single * W_mvdr; 
            W_compare = (1-mu/(d(1)+mu-1))*Qh(1,1).*V(:,1);
        case 4 % MWF Hjd with MVDR beamformer 
@@ -60,10 +53,12 @@ function [W_update,mvdr_n1,mvdr_n2] = weight_cal(Ryy_pre, Rnn_pre,Rxx,rho_rev,rh
 %            W_single = (xi + sqrt(psd_TX/(15*mvdr_n1*(Q(1,1)^2)))); % 
 %            W_mvdr = Qh(1,1)*(1/(h'*inv( Rnn)*h))*pinv(Rnn)*h;
            % USE traditional d, d is RTF
-             W_single = (xi + sqrt(psd_TX*1/10*h'*inv(Rnn)*h)); %  traditional d
-             W_mvdr = (1/(h'*inv(Rnn)*h))*pinv(Rnn)*h;
+           Rrr = rho_rev *gama;
+        
+             W_single = (xi + sqrt(psd_TX*1/10*abs(h'*pinv(Rnn+Rrr)*h))); %  traditional d
+             W_mvdr = (1/abs(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
            W_update =  W_single * W_mvdr; 
-           W_compare = Qh(1,1)*(1/(h'*inv( Rnn)*h))*pinv(Rnn)*h;
+           W_compare = Qh(1,1)*(1/(h'*pinv( Rnn)*h))*pinv(Rnn)*h;
        case 5 % MWF with MVDR beamformer
            % d is ATF
            h = Q(:,1);
@@ -93,3 +88,6 @@ function [sig_yy,sig_nn,sig_ss,d,Q,Qh,V] = GEVD(Rnn,Ryy)
     sig_ss = sig_yy(1,1) - sig_nn(1,1) ; 
     sig_ss = [sig_ss 0; 0 0];
 end
+
+
+
