@@ -15,8 +15,7 @@ Rnn_real = cell(N_freqs,1);  Rnn_real(:) = {1e-9*randn(num_mics,num_mics)};     
 
 % model.lambda = 0.8;                                                       % Forgetting factors for correlation matrices - can change
 % model.SPP_thr = 0.5;                                                       % Threshold for SPP - can change
-model.lambda = 0.99;                                                       % Forgetting factors for correlation matrices - can change
-model.SPP_thr = 0.95;
+
 model.alpha = 0.33;
 % For MWF filter for left ear
 S_mvdr_mwfL_stft = zeros(N_freqs,N_frames,num_mics);
@@ -29,9 +28,7 @@ rho_s = zeros(N_freqs,N_frames);
 rho_r = zeros(N_freqs,N_frames);v = zeros(N_freqs,N_frames);
 % STFT Processing
 % Looping through each time frame and each frequency bin
-% SPP = zeros(257,311);
-% SPP(:,23:115) = 1; SPP(:,213:311) = 1;
-% tic
+
 for l=1:N_frames % Time index
     for k = 2:N_freqs % Freq index
                 
@@ -46,8 +43,7 @@ for l=1:N_frames % Time index
             % speech + noise
         else
             % noise only
-            b = 0.5;
-             Rnn{k} = b*Rnn{k}+(1-b).* Y_kl* Y_kl'; % N*N' is not available in real situation 
+             Rnn{k} = model.lambda*Rnn{k}+(1-model.lambda).* Y_kl* Y_kl'; % N*N' is not available in real situation 
 %              Ryy{k} = Rnn{k};
         end           
             Rxx_real{k} = (model.alpha*Rxx_real{k}+(1-model.alpha).* X_kl* X_kl');
@@ -72,7 +68,6 @@ for l=1:N_frames % Time index
            else
                rho_rev_realx(k,l) = abs(lamada(2));
            end
-%             rho_s_esti(k,l) = Rxx_esti{k}(1,1)-rho_rev_realx(k,l);
             if(l>1);residual = rho_s (k,l-1); else;residual = 0;end
             rho_s(k,l)  = (1-model.alpha)*abs(xe_STFT(k,l,1)).^2 +model.alpha*residual;
             if(l>1);residual_r = rho_r (k,l-1);else;residual_r = 0;end
@@ -87,16 +82,15 @@ for l=1:N_frames % Time index
               v(k,l) =  (prioiSNR(k,l)/(1+prioiSNR(k,l)))*postSNR(k,l);
               v(k,l)  = min(100,v(k,l));
               % mmse
-             sig_spectral = gamma(1.5)*(sqrt(v(k,l))/postSNR(k,l))*exp(-v(k,l)/2)...
-             *((1+v(k,l))*besseli(0,v(k,l)/2) + v(k,l)*besseli(1,v(k,l)/2))...
-             *y_STFT(k,l,1);
-              % another method
-        %       mu = 1;
-        %       sig_spectral = sqrt(prioiSNR(k,l)/(mu+prioiSNR(k,l)))*()    rho_rev_realx(k,l)
+%              sig_spectral = gamma(1.5)*(sqrt(v(k,l))/postSNR(k,l))*exp(-v(k,l)/2)...
+%              *((1+v(k,l))*besseli(0,v(k,l)/2) + v(k,l)*besseli(1,v(k,l)/2))...
+%              *y_STFT(k,l,1);           
+              sig_spectral = (prioiSNR(k,l)/(1+prioiSNR(k,l))) *y_STFT(k,l,1);
+              
               Rx3(k,l) = sig_spectral*conj(sig_spectral);
              rho_rev =   rho_r(k,l) ;
-               rho_rev =  0;
-              rho_ss  =  abs(Rx3(k,l) ); h = h_steer(:,k);Rn =  Rnn_real{k};
+%                rho_rev =  0;
+              rho_ss  =  abs(Rx3(k,l) ); h = h_steer(:,k);Rn =  Rnn{k};
 %        calculate mu used in SDW MWF     
 %        mu1: fix constant; mu2 spp model; mu3 psycho1;mu4 psycho2
            model.mu = 1;
@@ -106,9 +100,10 @@ for l=1:N_frames % Time index
            W_single = rho_ss/(rho_ss + mu /(abs(h'*pinv(Rrr + Rn)*h)));
            W_single = max(0,W_single );
            W_mvdr = (1/abs(h'*pinv(Rn+Rrr)*h))*pinv(Rn+Rrr)*h;
-%            W_update =  W_single * W_mvdr; 
+           W_update =  W_single * W_mvdr; 
 % [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask,gama,h,1,1);
- [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},h,4,1);
+%  [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},...
+%      h,model.weight,model.mu);
 
   
        weight(:,k,l) =W_update;  

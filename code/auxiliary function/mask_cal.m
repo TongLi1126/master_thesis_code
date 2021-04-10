@@ -3,11 +3,12 @@ function [T_g,bark] = mask_cal(signal,f,fs,nfft,t,index_fig)
 bark = hz2bark(f);
 N_freqs = nfft/2 +1;
 
-spl = psd2spl(signal,nfft);
+
 %% calculate ATH, auditory threshold
 Tq = 3.64*(f/1000).^-0.8 -6.5*exp(-0.6*(f/1000-3.3).^2)+0.001*(f/1000).^4;
-
-
+Tq(2) = 40;Tq(3) = 30;Tq(4) = 25;
+%% spectral analysis
+spl = psd2spl(signal,nfft);
 % determine tonal masker and power of tonal masker
 %% determine neighbour delta_k of a tonal masker
  ST = []; P_TM=[];
@@ -117,7 +118,8 @@ pause(0.1);
 
 end 
 
-%%
+
+
 function P_i = mask_decimation(P_k,bark,Tq)
 if(P_k)
  % remove masker below  ATH   
@@ -227,3 +229,5 @@ end
 
 %legend('Signal','ATH','T_g');
 end
+
+
