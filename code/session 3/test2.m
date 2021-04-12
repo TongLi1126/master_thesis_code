@@ -287,7 +287,7 @@ end % end time frames
 % toc;
 
 
-%% Observe processed STFTst
+% Observe processed STFTst
 figure; subplot(2,1,1);
 imagesc(1:N_frames,f/1000,mag2db(abs(Rx3(:,:,1))),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
 S_L_enhanced = S_mvdr_mwfL_stft(:,:,1);
@@ -316,7 +316,7 @@ plot(real(s_mwfL));title('signal after enhancement');
 soundsc(real(s_mwfL(:,1)),fs);
 % soundsc(signal,fs);
 %  soundsc(noisy_sig,fs_RIR);
-%% EVALUATION
+% EVALUATION
 
 % transform vad to time vad
 pvad = repmat(pVAD',nfft,1); L = size(pvad,2);

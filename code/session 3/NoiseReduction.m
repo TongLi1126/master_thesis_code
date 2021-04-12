@@ -81,11 +81,11 @@ for l=1:N_frames % Time index
               prioiSNR(k,l) = a * resi +(1-a)*max(0,postSNR(k,l)-1);
               v(k,l) =  (prioiSNR(k,l)/(1+prioiSNR(k,l)))*postSNR(k,l);
               v(k,l)  = min(100,v(k,l));
-              % mmse
-%              sig_spectral = gamma(1.5)*(sqrt(v(k,l))/postSNR(k,l))*exp(-v(k,l)/2)...
-%              *((1+v(k,l))*besseli(0,v(k,l)/2) + v(k,l)*besseli(1,v(k,l)/2))...
-%              *y_STFT(k,l,1);           
-              sig_spectral = (prioiSNR(k,l)/(1+prioiSNR(k,l))) *y_STFT(k,l,1);
+%               mmse
+             sig_spectral = gamma(1.5)*(sqrt(v(k,l))/postSNR(k,l))*exp(-v(k,l)/2)...
+             *((1+v(k,l))*besseli(0,v(k,l)/2) + v(k,l)*besseli(1,v(k,l)/2))...
+             *y_STFT(k,l,1);           
+%               sig_spectral = (prioiSNR(k,l)/(1+prioiSNR(k,l))) *y_STFT(k,l,1);
               
               Rx3(k,l) = sig_spectral*conj(sig_spectral);
              rho_rev =   rho_r(k,l) ;
@@ -99,21 +99,22 @@ for l=1:N_frames % Time index
            Rrr = rho_rev *gama{k};           
            W_single = rho_ss/(rho_ss + mu /(abs(h'*pinv(Rrr + Rn)*h)));
            W_single = max(0,W_single );
-           W_mvdr = (1/abs(h'*pinv(Rn+Rrr)*h))*pinv(Rn+Rrr)*h;
-%            W_update =  W_single * W_mvdr; 
+%            W_mvdr = (1/abs(h'*pinv(Rn+Rrr)*h))*pinv(Rn+Rrr)*h;
+           W_mvdr = (1/abs(h'*((Rnn{k}+Rrr)\h)))*((Rnn{k}+Rrr)\h);
+           W_update =  1 * W_mvdr; 
 % [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask,gama,h,1,1);
- [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},...
-     h,model.weight,model.mu);
-
-  
+%  [W_update] = weight_cal(Ryy{k}, Rnn{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},...
+%      h,model.weight,model.mu);
+% 
+%   
        weight(:,k,l) =W_update;  
        % update w
          for m = 1:num_mics    
               % After experiments, we found that Filter parameter is not likely
               % larger than 2 if it converges.
-            if(max(abs(W_update)) < 2.2) % This will skip some initial frames  
+           
                 W_mvdr_mwfL(:,k,m) =W_update;              
-            end
+            
             % Filtering the noisy speech, the speech-only, and the noise-only.
             S_mvdr_mwfL_stft(k,l,m) = W_mvdr_mwfL(:,k,m)'* Y_kl(1:num_mics);
             X_mvdr_mwfL_stft(k,l,m) = W_mvdr_mwfL(:,k,m)'* X_kl(1:num_mics);
