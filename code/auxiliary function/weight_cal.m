@@ -57,7 +57,7 @@ function [W_update] = weight_cal(Ryy, Rnn,Rxx,rho_rev,rho_ss,TX_Mask,gama,h,func
         
              W_single = (xi + sqrt(psd_TX*1/10*abs(h'*pinv(Rnn+Rrr)*h))); %  traditional d
              W_mvdr = (1/abs(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
-           W_update =  W_single * W_mvdr; 
+           W_update = W_single * W_mvdr; 
            W_compare = Qh(1,1)*(1/(h'*pinv( Rnn)*h))*pinv(Rnn)*h;
        case 5 % MWF with MVDR beamformer
            % d is ATF

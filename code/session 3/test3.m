@@ -20,6 +20,10 @@ end
 %% Generate speech signal
 % Load ATFs
 load Computed_RIRs
+% load Computed_RIRs_rev0
+load Computed_RIRs_rev030
+% load Computed_RIRs_rev061
+% load Computed_RIRs_rev1s
 % load speech_both 
 source_filename{1} = 'speech1.wav';
 siglength = 15; 
@@ -27,7 +31,7 @@ num_mics = 2;
 [source_signals_raw{1}, source_signals_raw{2}] = audioread(source_filename{1});
 signal  = resample(source_signals_raw{1},fs_RIR,source_signals_raw{2});
 signal = 10*signal(1:siglength*fs_RIR);
-speech = fftfilt(RIR_sources(1:200,:),signal,siglength*fs_RIR);
+speech = fftfilt(RIR_sources(1:end,:),signal,siglength*fs_RIR);
 he = zeros(size(RIR_sources,1),size(RIR_sources,2)); hr = zeros(size(RIR_sources,1),size(RIR_sources,2)); 
 he(1:800,:) = RIR_sources(1:800,:);
 hr(800:end,:) = RIR_sources(800:end,:);
@@ -39,9 +43,9 @@ speech_r = fftfilt(hr,signal,siglength*fs_RIR);
 noise_filename{1} = 'Babble_noise1.wav';noise_filename{2} = 'White_noise1.wav';
 
 noise_babble = generate_noise(noise_filename{1},speech(:,1),fs_RIR,...
-    SNR_bubble,RIR_noise(1:200,:),siglength);
+    SNR_bubble,RIR_noise(1:end,:),siglength);
 noise_white  = generate_noise(noise_filename{2},speech(:,1),fs_RIR,...
-    SNR_white,RIR_noise(1:200,:),siglength);
+    SNR_white,RIR_noise(1:end,:),siglength);
 %% ## Obtain the noisy microphone signals 
 noise = noise_white + noise_babble;
 % Create noisy mic signals in the time domain:
@@ -97,7 +101,7 @@ TX_Mask = zeros(N_freqs,N_frames);
 TN_Mask = zeros(N_freqs,N_frames);
 noise_spl = zeros(N_freqs,N_frames);
 NMR = zeros(N_freqs,N_frames);
-
+% 
 % for t = 1:N_frames
 % %  use 1st mic speech signal as masker
 % %      [TY_Mask(:,t),bark] = mask_cal(y_STFT(:,t,1),f,fs,nfft,t,1);
@@ -105,12 +109,12 @@ NMR = zeros(N_freqs,N_frames);
 %    noise_spl(:,t) = psd2spl(n_STFT(:,t,1),nfft);
 %    NMR(:,t) = noise_spl(:,t)-TX_Mask(:,t);          
 % end
-
+% 
 % for t = 1:N_frames
 % %  use 1st mic noisy signal as masker
 %    [TY_Mask(:,t),bark] = mask_cal(y_STFT(:,t,1),f,fs,nfft,t,10);
 %    noise_spl(:,t) = psd2spl(n_STFT(:,t,1),nfft);
-%    NMR(:,t) = noise_spl(:,t)-TXE_Mask(:,t);          
+%    NMR(:,t) = noise_spl(:,t)-TX_Mask(:,t);          
 % end
 
 % Observe the TM
@@ -149,6 +153,8 @@ rho_r = zeros(N_freqs,N_frames);v = zeros(N_freqs,N_frames);
 postSNR = zeros(N_freqs,N_frames);
 prioiSNR = zeros(N_freqs,N_frames);
 sigPow = zeros(N_freqs,N_frames);
+W_mvdr_mwfL = (1/num_mics)*ones(num_mics,N_freqs);
+
 % STFT Processing
 % tic
 for l=1:N_frames % Time index
@@ -204,28 +210,27 @@ for l=1:N_frames % Time index
            noise_mvdr(k,l) = 1/(abs(h'*((Rrr + Rnn{k})\h)));
            W_single_mvdr(k,l) = rho_ss/(rho_ss + noise_mvdr(k,l));
            W_single_mvdr(k,l) = max(0, W_single_mvdr(k,l));
-           W_mvdr = (1/abs(h'*((Rnn{k}+Rrr)\h)))*((Rnn{k}+Rrr)\h);
-           W_update =1* W_mvdr;   
-%     % Filtering the noisy speech, the speech-only, and the noise-only.
-%            S_mvdr_mwfL_stft(k,l) = W_update'* Y_kl(1:num_mics);
-%            X_mvdr_mwfL_stft(k,l) = W_update'* X_kl(1:num_mics);
-%            N_mvdr_mwfL_stft(k,l) = W_update'* N_kl(1:num_mics);
+           W_mvdr = 2*(1/abs(h'*((Rnn{k}+Rrr)\h)))*((Rnn{k}+Rrr)\h);
+           W_mvdr_mwfL(:,k) = W_single_mvdr(k,l)* W_mvdr;   
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%perceptual weighting   %%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%            xi = 0.005;               
-%            psd_TX = (10^((TX_Mask(k,l)-90)/10))* 512*512/2;
-%            W_single_pw(k,l) = (xi + sqrt(psd_TX*abs(h'*pinv(Rnn{k}+Rrr)*h))); 
-%            W_single_pw(k,l) = max(0,W_single_pw(k,l));
-%            W_update_pw = W_single_pw(k,l)* W_mvdr;    
-%            if ((W_update_pw'* h <=1))
-%                 W_update = W_update_pw ;
+           xi = 0.005;           
+           psd_TX = (10^((TY_Mask(k,l)-90)/10))* 512*512/2;
+           W_single_pw(k,l) = (xi + sqrt(psd_TX*0.1/noise_mvdr(k,l))); 
+           W_update_pw =W_single_pw(k,l) * W_mvdr;       
+%            if (max(abs(W_update_pw)) <2.2)
+%                 W_mvdr_mwfL(:,k) = W_update_pw ;
 %            end
+           
            % Filtering the noisy speech, the speech-only, and the noise-only.
-           S_mvdr_mwfL_stft(k,l) = W_update'* Y_kl(1:num_mics);
-           X_mvdr_mwfL_stft(k,l) = W_update'* X_kl(1:num_mics);
-           N_mvdr_mwfL_stft(k,l) = W_update'* N_kl(1:num_mics);
+           S_mvdr_mwfL_stft(k,l) = W_mvdr_mwfL(:,k)'* Y_kl(1:num_mics);
+           X_mvdr_mwfL_stft(k,l) = W_mvdr_mwfL(:,k)'* X_kl(1:num_mics);
+           N_mvdr_mwfL_stft(k,l) = W_mvdr_mwfL(:,k)'* N_kl(1:num_mics);
        
+
+
     end % end freqs
 end % end time frames
 % toc;
