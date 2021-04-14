@@ -1,21 +1,21 @@
-clear;
-close all
-mex  ./pesq/*.c -output ./bin/PESQ_MEX
-if ispc
-    addpath('..\..\audio_files');
-    addpath('..\..\sim_environment');
-    addpath('..\evaluation');
-    addpath('..\auxiliary function');
-    addpath('.\pesq');
-    addpath('.\bin');
-else
-    addpath('../../audio_files');
-    addpath('../../sim_environment');
-    addpath('../evaluation');
-    addpath('../auxiliary function');
-    addpath('./pesq');
-    addpath('./bin');
-end
+% clear;
+% close all
+% mex  ./pesq/*.c -output ./bin/PESQ_MEX
+% if ispc
+%     addpath('..\..\audio_files');
+%     addpath('..\..\sim_environment');
+%     addpath('..\evaluation');
+%     addpath('..\auxiliary function');
+%     addpath('.\pesq');
+%     addpath('.\bin');
+% else
+%     addpath('../../audio_files');
+%     addpath('../../sim_environment');
+%     addpath('../evaluation');
+%     addpath('../auxiliary function');
+%     addpath('./pesq');
+%     addpath('./bin');
+% end
 
 %%
 
@@ -36,16 +36,9 @@ hr = zeros(size(RIR_sources,1),size(RIR_sources,2));
 hr(801:end,:) = RIR_sources(801:end,:);
 speech_e = fftfilt(he,signal,siglength*fs_RIR);
 speech_r = fftfilt(hr,signal,siglength*fs_RIR);
-% % generate HRTF signal % HRTF is reveb, larger distortion
-% load HRTF
-% speech = fftfilt(HRTF(1:600,:),signal,siglength*fs_RIR); 
-% % generate non reveb signal, with non reveb noise , has 44 dB snr, least
-% % distortion
-% load binaural_sig  % non reverbration speech signal
-% speech = binaural_sig(1:fs_RIR*siglength,:);
 
 % Generate noise at microphone
- SNR_bubble = 5; 
+ SNR_bubble = -5; 
  SNR_white = 300;
 noise_filename{1} = 'Babble_noise1.wav';noise_filename{2} = 'White_noise1.wav';
 
@@ -260,22 +253,30 @@ for l=1:N_frames % Time index
 %              sig_spectral = (prioiSNR(k,l)/(1+prioiSNR(k,l)))*y_STFT(k,l,1);
               Rx3(k,l) = sig_spectral*conj(sig_spectral);
              rho_rev =   rho_r(k,l) ;
-%                rho_rev =  0;
+               rho_rev =  0;
               rho_ss  =  abs(Rx3(k,l) ); h = h_steer(:,k);Rn =  Rnn{k};
 %        calculate mu used in SDW MWF     
 %        mu1: fix constant; mu2 spp model; mu3 psycho1;mu4 psycho2
            model.mu = 1;
            mu = mu_calc(SPP(k,l),TX_Mask(k,l),NMR(k,l),model.mu);
            muxx(k,l) =  mu;  
-           Rrr = rho_rev *gama{k};           
-           W_single = rho_ss/(rho_ss + mu /(abs(h'*((Rrr + Rn)\h))));
-           W_single = max(0,W_single );
-           W_mvdr = (1/abs(h'*((Rn+Rrr)\h)))*((Rn+Rrr)\h);
-           W_update = W_single* W_mvdr; 
-% [W_update] = weight_cal(Ryy{k}, Rnn{k}+Rrr,Rxx{k},rho_rev,rho_ss,TX_Mask,gama,h,4,1);
-%  [W_update] = weight_cal(Ryy{k}, Rnn_real{k},Rxx{k},rho_rev,rho_ss,TY_Mask(k,l),gama{k},h,4,1);
+           Rrr = rho_rev *gama{k};         
+           noise_mvdr(k,l) = 1/(abs(h'*((Rrr + Rn)\h)));
+           W_single_mvdr(k,l) = rho_ss/(rho_ss + mu /(abs(h'*((Rrr + Rn)\h))));
+           W_single_mvdr(k,l) = max(0,W_single_mvdr(k,l) );
+           W_mvdr = (1/abs(h'*((Rnn{k}+Rrr)\h)))*((Rnn{k}+Rrr)\h);
 
-  
+% [W_update] = weight_cal(Ryy{k}, Rnn{k}+Rrr,Rxx{k},rho_rev,rho_ss,TX_Mask,gama,h,4,1);
+%  [W_update] = weight_cal(Ryy{k}, Rnn_real{k},Rxx{k},rho_rev,rho_ss,TX_Mask(k,l),gama{k},h,4,1);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%perceptual weighting   %%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%            xi = 0.005;               
+%            psd_TX = (10^((TX_Mask(k,l)-90)/10))* 512*512/2;
+%            W_single_pw(k,l) = (xi + sqrt(psd_TX*abs(h'*pinv(Rn+Rrr)*h))); 
+%            W_single_pw(k,l) = max(0,W_single_pw(k,l));
+%            W_single_pw(k,l) = min(1,W_single_pw(k,l));
+           W_update = 1* W_mvdr; 
            weight(:,k,l) =W_update;                     
            % Filtering the noisy speech, the speech-only, and the noise-only.
            S_mvdr_mwfL_stft(k,l) = W_update'* Y_kl(1:num_mics);
@@ -289,12 +290,12 @@ end % end time frames
 
 % Observe processed STFTst
 figure; subplot(2,1,1);
-imagesc(1:N_frames,f/1000,mag2db(abs(Rx3(:,:,1))),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
+imagesc(1:N_frames,f/1000,mag2db(abs(Rx3)),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
 S_L_enhanced = S_mvdr_mwfL_stft(:,:,1);
-subplot(2,1,2); imagesc(1:N_frames,f/1000,mag2db(abs(S_mvdr_mwfL_stft(:,:,1))),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'),title('Enhanced Signal L - MWF');
+subplot(2,1,2); imagesc(1:N_frames,f/1000,mag2db(abs(noise_mvdr)),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'),title('Enhanced Signal L - MWF');
 
 figure; subplot(2,1,1);
-imagesc(1:N_frames,f/1000,mag2db(abs(y_STFT(:,:,1))),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
+imagesc(1:N_frames,f/1000,mag2db(abs(W_single_mvdr(:,:,1))),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
 S_L_enhanced = S_mvdr_mwfL_stft(:,:,1);
 subplot(2,1,2); imagesc(1:N_frames,f/1000,mag2db(abs(S_mvdr_mwfL_stft(:,:,1))),[-60 10]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'),title('Enhanced Signal L - MWF');
 
@@ -337,10 +338,6 @@ delta.SNR_L = out.snr-in.snr;
 in.SI_SNR =SI_SNRatio(speech(:,1),noise(:,1),1, fs, vad); % Compute input SNR
 out.SI_SNR =SI_SNRatio(s_mwfL(:,1),n_mwfL(:,1),1, fs, vad); % Compute output SNR
 delta.SI_SNR = out.SI_SNR-in.SI_SNR;
-% segsnr
-[in.segsnr,in.glosnr]=v_snrseg(noisy_sig_ref,speech_ref,fs,'Vq',0.03); 
-[out.segsnr,out.glosnr]=v_snrseg(enhance_sig ,speech_ref,fs,'Vq',0.03); 
-delta.segSNR = out.segsnr-in.segsnr;
 
 % spectral distance SD
 [in.SD,in.BSD,in.MBSD] = distor_cal(x_STFT,y_STFT,nfft,TX_Mask);
