@@ -18,7 +18,7 @@ for k = 1:N_freqs
                 *dis_mic*fs_RIR/340));
         end
         % far field approximation
-        % d(p,k) = exp(-j * ((2*pi*(k-1)/(N_freqs-1)) * (p-1)* dis_mic*cos(DOA)*fs_RIR/340));
+%         d(p,k) = exp(-j * ((2*pi*(k-1)/(N_freqs-1)) * (p-1)* dis_mic*cos(DOA)*fs_RIR/340));
          dist_norm = norm((s_pos - mic_pos(p,:)),2);      % ||c - pm|| - dist. from source to each mic.
          apr(p,k) = exp(-1j*2*pi*(fs_RIR*(k-1)/(N_freqs-1))*(dist_norm/340))/dist_norm;
     end
