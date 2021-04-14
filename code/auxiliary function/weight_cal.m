@@ -42,23 +42,22 @@ function [W_update] = weight_cal(Ryy, Rnn,Rxx,rho_rev,rho_ss,TX_Mask,gama,h,func
            W_single = max(0,W_single );
            W_mvdr = (1/abs(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
            W_update =  W_single * W_mvdr; 
-           W_compare = (1-mu/(d(1)+mu-1))*Qh(1,1).*V(:,1);
+          
        case 4 % MWF Hjd with MVDR beamformer 
            xi = 0.005;          
            psd_TX = (10^((TX_Mask-90)/10))* 512*512/2;
            % USE Q->d, d is ATF
 %            h = Q(:,1);                    
-           mvdr_n1 = sig_nn(1,1)*1; 
-           mvdr_n2 = (1/(h'*inv( Rnn)*h))*1;
+           
 %            W_single = (xi + sqrt(psd_TX/(15*mvdr_n1*(Q(1,1)^2)))); % 
 %            W_mvdr = Qh(1,1)*(1/(h'*inv( Rnn)*h))*pinv(Rnn)*h;
            % USE traditional d, d is RTF
-           Rrr = rho_rev *gama;
-        
-             W_single = (xi + sqrt(psd_TX*1/10*abs(h'*pinv(Rnn+Rrr)*h))); %  traditional d
+            Rrr = rho_rev *gama;
+             denorm = abs(h'*pinv(Rnn+Rrr)*h);
+             W_single = (xi + sqrt(psd_TX*0.1*abs(h'*pinv(Rnn+Rrr)*h))); %  traditional d
              W_mvdr = (1/abs(h'*pinv(Rnn+Rrr)*h))*pinv(Rnn+Rrr)*h;
            W_update =  W_single * W_mvdr; 
-           W_compare = Qh(1,1)*(1/(h'*pinv( Rnn)*h))*pinv(Rnn)*h;
+          
        case 5 % MWF with MVDR beamformer
            % d is ATF
            h = Q(:,1);

@@ -132,7 +132,7 @@ set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (Hz)'),title('Mask
 % lambda forgetting factor, SPP_thr update threshold,alpha time average of
 % rho_s, weight 1: MWF spectral subtraction, weight 2: psychoacoustic
 % weighting. rev: 1 with dereverberation. rev:0 without dereverberation
-model = struct('lambda',0.90,'SPP_thr',0.6,'alpha',0.33,'weight',1,'rev',0);
+model = struct('lambda',0.90,'SPP_thr',0.6,'alpha',0.33,'weight',1,'rev',1);
 
 [S_pre_MWF,~,~] = NoiseReduction(y_STFT,x_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TX_Mask,model,h_steer,gama);
 figure; subplot(2,1,1);
@@ -142,13 +142,13 @@ imagesc(1:N_frames,f/1000,mag2db(abs(S_pre_MWF(:,:,1))),[-100 0]);
 colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); 
 xlabel('Time (s)'), ylabel('Frequency (Hz)'),...
 title('Enhanced Signal L - MWF');                              
-% estimated TX based on primary enhanced speech signal
+%% estimated TX based on primary enhanced speech signal
 % use enhanced signal as masker
 TS_enhance_Mask = zeros(N_freqs,N_frames);
 noise_enhance_spl = zeros(N_freqs,N_frames);
 NMR_S= zeros(N_freqs,N_frames);
 for t = 1:N_frames
-   [TS_enhance_Mask(:,t),bark] = mask_cal(S_pre_MWF(:,t,1),f,fs,nfft,t,10);
+   [TS_enhance_Mask(:,t),bark] = mask_cal(2*S_pre_MWF(:,t,1),f,fs,nfft,t,10);
    noise_enhance_spl(:,t) = psd2spl(n_STFT(:,t,1),nfft);
    NMR_S(:,t) = noise_enhance_spl(:,t)-TX_Mask(:,t);          
 end
@@ -163,14 +163,15 @@ set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (Hz)'),...
     title('Mask threshold based on clean signal');
 
 %% implement NR algorithm, use perceptual weighting
-model.weight = 2; model.rev = 0;
-[S_MWF,X_MWF,N_MWF] = NoiseReduction(y_STFT,xe_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TS_enhance_Mask,model,h_steer,gama);
+model.weight = 1; model.rev = 1;
+[S_MWF,X_MWF,N_MWF] = NoiseReduction(y_STFT,xe_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TX_Mask,model,h_steer,gama);
 %TS_enhance_Mask
 % Observe processed STFTst
 
 figure; subplot(2,1,1);
-imagesc(1:N_frames,f/1000,mag2db(abs( y_STFT(:,:,1))),[-60 20]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
-subplot(2,1,2); imagesc(1:N_frames,f/1000,mag2db(abs(S_MWF(:,:))),[-60 20]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'),title('Enhanced Signal L - MWF');
+imagesc(1:N_frames,f/1000,mag2db(abs( x_STFT(:,:,1)))); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
+S_L_enhanced = S_MWF(:,:,1);
+subplot(2,1,2); imagesc(1:N_frames,f/1000,mag2db(abs(S_MWF(:,:,1))), [clow, chigh]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'),title('Enhanced Signal L - MWF');
 % figure;
 % imagesc(1:N_frames, f,muxx); colorbar; axis xy; set(gcf,'color','w');
 % set(gca,'Fontsize',14), xlabel('Time Frames'), ylabel('Frequency (Hz)'), title('Masking threshold for ref mic');
@@ -195,7 +196,7 @@ figure;
 subplot(2,1,1);
 plot(speech(:,1)); title('clean signal');
 subplot(2,1,2);
-plot(real(noisy_sig(:,1)));hold on; plot(real(s_mwfL(:,1)));title('signal after enhancement');
+plot(real(s_mwfL(:,1)));title('signal after enhancement');
 % LISTEN TO SIGNALS!
 soundsc(real(s_mwfL(:,1)),fs);
 %  soundsc(signal,fs);
