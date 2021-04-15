@@ -165,17 +165,21 @@ axis xy; set(gca,'fontsize', 14);
 set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (Hz)'),...
     title('Mask threshold based on clean signal');
 
-%% implement NR algorithm, use perceptual weighting
+% implement NR algorithm, use perceptual weighting
 model.weight = 2; model.rev = 1;
-[S_MWF,X_MWF,N_MWF] = NoiseReduction(y_STFT,xe_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TX_Mask,model,h_steer,gama);
+[S_MWF,X_MWF,N_MWF] = NoiseReduction(y_STFT,xe_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TS_enhance_Mask,model,h_steer,gama);
 %TS_enhance_Mask
 % Observe processed STFTst
 
 figure; subplot(2,1,1);
 imagesc(1:N_frames,f/1000,mag2db(abs( y_STFT(:,:,1))),[-60 20]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'), title('microphne signal, 1st mic');
 subplot(2,1,2); imagesc(1:N_frames,f/1000,mag2db(abs(S_MWF(:,:))),[-60 20]); colorbar; axis xy; set(gcf,'color','w');set(gca,'Fontsize',14); xlabel('Time (s)'), ylabel('Frequency (Hz)'),title('Enhanced Signal L - MWF');
+% figure;
+% imagesc(1:N_frames, f,muxx); colorbar; axis xy; set(gcf,'color','w');
+% set(gca,'Fontsize',14), xlabel('Time Frames'), ylabel('Frequency (Hz)'), title('Masking threshold for ref mic');
 
 % Apply the synthesis stage of the WOLA framework to obtain the time domain equivalents:
+S_MWF(1:end,1:10,:) = 0;
 s_mwfL = WOLA_synthesis(S_MWF,window,nfft,noverlap);% To complete (time-domain version of S_mvdr_mwfL_stft)
 x_mwfL = WOLA_synthesis(X_MWF,window,nfft,noverlap);% To complete (time-domain version of X_mvdr_mwfL_stft)
 n_mwfL = WOLA_synthesis(N_MWF,window,nfft,noverlap);% To complete (time-domain version of N_mvdr_mwfL_stft)
@@ -208,7 +212,7 @@ in.snr =snr(speech(:,1),noise(:,1)); % Compute input SNR
 out.snr =snr(s_mwfL(:,1),n_mwfL(:,1)) ;% Compute output SNR
 delta.SNR_L = out.snr-in.snr;
 in.SI_SNR =SI_SNRatio(speech(:,1),noise(:,1),1, fs, vad); % Compute input SNR
-out.SI_SNR =SI_SNRatio(s_mwfL(:,1),n_mwfL(:,1),1, fs, vad); % Compute output SNR
+out.SI_SNR =SI_SNRatio(s_mwfL(:,1),n_mwfL(:,1),1, fs, vad); ;% Compute output SNR
 delta.SI_SNR = out.SI_SNR-in.SI_SNR;
 
 % spectral distance SD
