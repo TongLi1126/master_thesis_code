@@ -166,8 +166,8 @@ set(gcf,'color','w'); xlabel('Time Frame'); ylabel('Frequency (Hz)'),...
     title('Mask threshold based on clean signal');
 
 %% implement NR algorithm, use perceptual weighting
-model.weight = 2; model.rev = 1;
-[S_MWF,X_MWF,N_MWF] = NoiseReduction(y_STFT,xe_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TX_Mask,model,h_steer,gama);
+model.weight = 2; model.rev = 0;
+[S_MWF,X_MWF,N_MWF] = NoiseReduction(y_STFT,xe_STFT,n_STFT,xe_STFT,xr_STFT,SPP,TS_enhance_Mask,model,h_steer,gama);
 %TS_enhance_Mask
 % Observe processed STFTst
 

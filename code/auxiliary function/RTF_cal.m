@@ -8,9 +8,7 @@ gama = cell(N_freqs,1);
 gama_update = ones(num_mics,num_mics);
 % w = 0 : pi / (nfft-1) : pi; % digital w (0-pi)
 dis_mic = mic_pos(2,2)-mic_pos(1,2); % distance between mics
-DA = mean(mic_pos) -s_pos; 
-DB = mic_pos(1,:) - mic_pos(2,:);
-DOA = acos(dot(DA,DB)/sqrt(norm(DA)*norm(DB)));
+
 for k = 1:N_freqs
     for p =  1:num_mics
         for q = 1:num_mics
