@@ -358,32 +358,28 @@ snrj = snrj +1;
  end
 revi = revi +1;
 end
-%% Plot results
-figure;
-for line = 1:length(SNR_set)
-    
-plot(RT_set,delta_SI_SNR(:,line),'-s'); hold on
-end
-legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20');grid on;ylabel('\Delta SI-SNR');xlabel('Reverberation time T_{60}')
 
 figure;
 for line = 1:length(SNR_set)
-plot(RT_set,delta_SD(:,line),'-s'); hold on
+plot(RT_set,delta_SI_SNR(:,line)); hold on
 end
-legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20');grid on;ylabel('\Delta SD');xlabel('Reverberation time T_{60}')
-
+legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20')
+title ('\Delt')
 figure;
 for line = 1:length(SNR_set)
-plot(RT_set,delta_PESQ(:,line),'-s'); hold on
+plot(RT_set,delta_SD(:,line)); hold on
 end
-legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20');grid on;ylabel('\Delta PESQ');xlabel('Reverberation time T_{60}')
-
+legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20')
 figure;
 for line = 1:length(SNR_set)
-plot(RT_set,delta_STOI(:,line),'-s'); hold on
+plot(RT_set,delta_PESQ(:,line)); hold on
 end
-legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20');grid on;ylabel('\Delta STOI');xlabel('Reverberation time T_{60}')
-
+legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20')
+figure;
+for line = 1:length(SNR_set)
+plot(RT_set,delta_STOI(:,line)); hold on
+end
+legend('SNR =-10','SNR =-5','SNR =0','SNR =5','SNR =10','SNR =20')
 
 
 
